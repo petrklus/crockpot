@@ -2,7 +2,7 @@ import pickle
 import numpy as np
 
 #  load data
-with open("logs/log_20150418-16_03_54.pckl") as fp:
+with open("logs_examples/log_20150418-16_03_54.pckl") as fp:
     values = pickle.load(fp)
 
 #  build value relations
