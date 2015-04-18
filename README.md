@@ -1,1 +1,1 @@
-# iotlab2015
+# Crockpot control software
