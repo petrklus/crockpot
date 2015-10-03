@@ -30,9 +30,9 @@
 #define  VER       "2.0"
 
 // digital temp sensor
-//#include "Wire.h"
+#include "Wire.h"
 //wire library
-//#define address 0x4d
+#define address 0x4d
 
 int inbyte;
 int AC_LOAD = 3;    // Output to Opto Triac pin
@@ -42,6 +42,17 @@ boolean frq = FQ_50;     // change the frequency here.
 
 byte val = 0;
 
+void setup()
+{
+  pinMode(AC_LOAD, OUTPUT);	      // Set the AC Load as output
+  pinMode(7, OUTPUT);	      // we just need another 5V somewhere... 
+  digitalWrite(7, HIGH);      // ditto
+
+  attachInterrupt(0, zero_crosss_int, RISING);  // Choose the zero cross interrupt # from the table above
+  Serial.begin(115200);
+  Wire.begin();
+  Serial.println("Starting bitches");
+}
 
 void zero_crosss_int()  // function to be fired at the zero crossing to dim the light
 {
@@ -66,6 +77,50 @@ void zero_crosss_int()  // function to be fired at the zero crossing to dim the 
 }
 
 long last_time = 0; // last time of reporting
+void loop()
+{
+
+  if (Serial.available() > 0)
+    _serial_int();
+
+  long cur_time = millis();
+  if (cur_time - last_time > 2000) {
+       // pause in dimming
+       detachInterrupt(0); 
+    
+      Serial.print("[[DP");
+      last_time = millis();
+      
+      int temp_resistor = analogRead(A0);
+      // get current temperature from sensor
+      Wire.beginTransmission(address);
+      //start the transmission
+      Wire.write(val);
+      int temperature;
+   
+      Wire.requestFrom(address, 1);
+      delay(100);
+      if (Wire.available()) {
+         temperature = Wire.read();
+         Serial.print(temperature);
+      } else {
+        // TODO shutdown, error state
+        Serial.println("No response from temp");
+      }
+      Serial.print(", ");
+      
+      Serial.print(temp_resistor);
+      Serial.print(", ");
+      
+      Serial.print(dimming);
+      Serial.println("]]");
+      if (dimming != fullOff && dimming != fullOn) {
+         attachInterrupt(0, zero_crosss_int, RISING);
+      }
+  }
+  
+
+}
 
 
 
@@ -122,63 +177,6 @@ void _serial_int(){
   }
 }
 
-
-void setup()
-{
-  pinMode(AC_LOAD, OUTPUT);	      // Set the AC Load as output
-  pinMode(7, OUTPUT);	      // we just need another 5V somewhere... 
-  digitalWrite(7, HIGH);      // ditto
-
-  attachInterrupt(0, zero_crosss_int, RISING);  // Choose the zero cross interrupt # from the table above
-  Serial.begin(115200);
-//  Wire.begin();
-  Serial.println("Starting up..");
-}
-void loop()
-{
-
-  if (Serial.available() > 0)
-    _serial_int();
-
-  long cur_time = millis();
-  if (cur_time - last_time > 2000) {
-       // pause in dimming
-       detachInterrupt(0); 
-    
-      Serial.print("[[DP");
-      last_time = millis();
-      
-      int temp_resistor = analogRead(A0);
-      // get current temperature from sensor
-      //Wire.beginTransmission(address);
-      //start the transmission
-      //Wire.write(val);
-      int temperature;
-         temperature = 11; // just mock temperature
-
-      //Wire.requestFrom(address, 1);
-      //delay(100);
-      //if (Wire.available()) {
-      //   temperature = Wire.read();
-         Serial.print(temperature);
-      //} else {
-        // TODO shutdown, error state
-      //  Serial.println("No response from temp");
-      //}
-      Serial.print(", ");
-      
-      Serial.print(temp_resistor);
-      Serial.print(", ");
-      
-      Serial.print(dimming);
-      Serial.println("]]");
-      if (dimming != fullOff && dimming != fullOn) {
-         attachInterrupt(0, zero_crosss_int, RISING);
-      }
-  }
-  
-
-}
 
 
 
