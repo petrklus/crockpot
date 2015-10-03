@@ -8,6 +8,10 @@ with open("logs_examples/log_20150418-16_03_54.pckl") as fp:
 #  build value relations
 res_to_tmp = map(lambda val: [int(val["resistor_val"]), int(val["digi_temp"])], values)
 
+# additional values collected later, cold environment, manual tweak to give them more weight (the coefficient)
+res_to_tmp += [[43, 20], [44,21], [550, 100], [600, 110]] * 50
+res_to_tmp = sorted(res_to_tmp)
+
 # fit curve and create conversion function
 from scipy import stats
 slope, intercept, r_value, p_value, std_err = stats.linregress(np.array(res_to_tmp))
@@ -21,7 +25,7 @@ def func(x, a, b, c, d):
 
 x, y = np.array(res_to_tmp)[:,0], np.array(res_to_tmp)[:,1]
 popt, pcov = curve_fit(func, x, y)
-x_rng = np.arange(0, 500) # resistor values..
+x_rng = np.arange(0, 650) # resistor values..
 
 
 # visualise result

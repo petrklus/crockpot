@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Crockpot</title>
+
+    <!-- Bootstrap -->
+    <link href="/static/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/bootstrap-theme.min.css">
+
+    <style type="text/css" media="screen">
+    a.butInit {
+        margin-top: 13px;
+    }
+    </style>
+  </head>
+  <body>    
+     <div class="container">
+        <div class="row">
+            <div class="col-sm-7">
+                    
+                    <a class="btn btn-default butInit" href="/button/0">OFF</a>                
+                    <a class="btn btn-default butInit" href="/button/2">25%</a>      
+                    <a class="btn btn-default butInit" href="/button/3">50%</a>                          
+                    <a class="btn btn-default butInit" href="/button/4">75%</a>
+                    <a class="btn btn-default butInit" href="/button/1">ON</a>
+                    &nbsp;&nbsp;&nbsp;
+                    <a class="btn btn-default butInit" href="/savebutton/">store</a>
+                    
+            </div>
+            <div class="col-sm-5">
+                <h2 style="width:100%; text-align:right">Crockpot controller</h2>
+            </div>
+        </div>
+            <div class="col-sm-9">
+                <div id="graph_placeholder0" style="width:100%;height:300px"></div>
+                <div id="graph_placeholder1" style="width:100%;height:300px"></div>
+                <div id="graph_placeholder2" style="width:100%;height:200px"></div>
+            </div>
+            <div class="col-sm-3">
+                <iframe src="/read" width="100%" height="800px"></iframe>
+            </div>
+        </div>
+    </div>
+
+    <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+    <script src="/static/js/jquery.min.js"></script>
+    <script src="/static/js/jquery.flot.min.js"></script>
+
+    <!-- Include all compiled plugins (below), or include individual files as needed -->
+    <script src="/static/js/bootstrap.min.js"></script>
+    
+    <script type="text/javascript">
+    $().ready(function() {
+        $("a.butInit").click(function(e) {
+            e.preventDefault()
+            var el = $(this)
+            console.log("pressed")
+            $.ajax({
+              type: "GET",
+              url: el.attr("href"),
+              data: "",
+            });            
+            console.log("Pressed:"+el.attr("href"))        
+        })
+        console.log("initialised")
+        
+
+        // temperatures = Array()
+        // resistor_vals = Array()
+        var temperatures, resistor_vals, dimming_vals
+        var process_data = function(current_data) {
+            temperatures = Array()
+            resistor_vals = Array()
+            dimming_vals = Array()
+            
+            if (current_data[0]) {
+                start_time = current_data[0].time
+            }            
+            $(current_data).each(function(i, el) {
+                var time_delta = (start_time-el.time)
+                temperatures.push(
+                    [time_delta, parseInt(el.digi_temp)]
+                )
+                resistor_vals.push(
+                    [time_delta, parseInt(el.resistor_val)]
+                )
+                dimming_vals.push(
+                    [time_delta, parseInt(el.dimming_val)]
+                )
+                
+            })			
+        }
+        // init
+        process_data([])
+        
+		var plot0 = $.plot("#graph_placeholder0", [
+            	{ data: temperatures, label: "temperature", color: "blue" },
+            ], {
+			series: {
+				shadowSize: 0	// Drawing is faster without shadows
+			},
+		});
+        
+        
+		var plot1 = $.plot("#graph_placeholder1", [
+            	{ data: resistor_vals, label: "resistor val"},
+            ], {
+			series: {
+				shadowSize: 0	// Drawing is faster without shadows
+			},
+		});
+        
+		var plot2 = $.plot("#graph_placeholder2", [
+            	{ data: resistor_vals, label: "resistor val"},
+            ], {
+			series: {
+				shadowSize: 0	// Drawing is faster without shadows
+			}
+		});
+
+
+		function update_plot() {
+            
+            $.getJSON( "/read_sensor_data", function( data ) {
+                process_data(data)
+    			plot0.setData([
+                    { data: temperatures, label: "temperature", color: "blue" },
+                ]);
+                plot0.setupGrid()                
+                
+    			plot1.setData([
+                    { data: resistor_vals, label: "resistor val", color: "red"},
+                ]);
+                plot1.setupGrid()                
+
+    			plot2.setData([
+                    { data: dimming_vals, label: "dimming"},
+                ]);
+                plot2.setupGrid()                
+                
+    			plot0.draw();plot1.draw();plot2.draw();
+                
+            });
+                    
+			setTimeout(update_plot, 3000);
+		}
+        update_plot()
+        
+    })
+    </script>
+    
+  </body>
+</html>

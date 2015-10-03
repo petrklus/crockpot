@@ -42,10 +42,10 @@ def command_reader():
                     "dimming_val" : dimming_val,
                 })
 
-                if record_number%50000:
+                if record_number%50000 == 0:
                     with open("logs/log_{}.pckl".format( d_time.strftime('%Y%m%d-%H_%M_%S')), "w") as fp:
                         pickle.dump(list(sensor_data), fp)
-                    record_number = 0
+                    record_number = 1
                 record_number += 1
                 
                 logging.debug("T{}, R{}, D{}".format(digi_temp, resistor_val, dimming_val))
@@ -148,8 +148,8 @@ def read_out():
 
 @route('/read_sensor_data')
 def read_sensor_data():
-    # get latest 100 values
-    return json.dumps(list(sensor_data)[::-1][:100])
+    # get latest hour (approx)
+    return json.dumps(list(sensor_data)[::-1][:1800])
 
 
 
@@ -158,6 +158,14 @@ def button(num):
     logging.info("Button {} pressed".format(num))
     command = GenericCommandWrapper(num)
     command_q.append(command)      
+    return hello()
+
+@route('/savebutton/')
+def savebutton():
+    logging.info("Button save pressed")
+    d_time = datetime.datetime.fromtimestamp(time.time())    
+    with open("logs/log_{}.pckl".format( d_time.strftime('%Y%m%d-%H_%M_%S')), "w") as fp:
+        pickle.dump(list(sensor_data), fp)
     return hello()
 
 

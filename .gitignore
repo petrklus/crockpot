@@ -1,2 +1,5 @@
 logs/*.pckl
 *.pyc
+.DS_Store
+virtualenv
+
