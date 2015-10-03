@@ -43,8 +43,9 @@ def command_reader():
                 })
 
                 if record_number%50000 == 0:
-                    with open("logs/log_{}.pckl".format( d_time.strftime('%Y%m%d-%H_%M_%S')), "w") as fp:
-                        pickle.dump(list(sensor_data), fp)
+                    # auto-write disabled
+                    # with open("logs/log_{}.pckl".format( d_time.strftime('%Y%m%d-%H_%M_%S')), "w") as fp:
+                    #     pickle.dump(list(sensor_data), fp)
                     record_number = 1
                 record_number += 1
                 
@@ -220,5 +221,5 @@ if __name__ == "__main__":
     sender.start()
     
     
-    run(host='0.0.0.0', port=CONFIG["webserver_port"])
+    run(server="cherrypy", host='0.0.0.0', port=CONFIG["webserver_port"])
 

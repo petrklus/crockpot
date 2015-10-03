@@ -1,4 +1,4 @@
-arduino_port:       /dev/tty.usbmodem1d11
+arduino_port:       /dev/ttyACM0
 arduino_baudrate:   115200
 
 webserver_port:     8081
