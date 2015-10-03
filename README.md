@@ -14,3 +14,9 @@ exploration done in data_fitting.py requires additional packages - numpy, scipy 
 
 ![Curve fitting](https://raw.github.com/petrklus/crockpot/master/images/figure_1.png)
 
+## arduino code compilation
+
+- command line ready
+- enter directory crockpot_work
+- issue: ```make; make upload```
+- requires arduino package to be installed (tested on Rasbperry PI)
