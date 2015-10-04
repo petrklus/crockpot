@@ -11,8 +11,14 @@ import json
 logging.basicConfig(level=logging.DEBUG)
 
 
+
 sensor_data = collections.deque(maxlen=50000)
 lines = collections.deque(maxlen=100)
+sending_lock = threading.Lock()
+MODE = "OFF"
+CUR_SETTING = (0, 0, "0")
+
+
 
 record_number = 0
 def command_reader():
@@ -40,6 +46,7 @@ def command_reader():
                     "digi_temp" : digi_temp,
                     "resistor_val" : resistor_val,
                     "dimming_val" : dimming_val,
+                    "MODE" : MODE,
                 })
 
                 if record_number%50000 == 0:
@@ -78,7 +85,9 @@ class GenericCommandWrapper(object):
         else:
             raise Exception("Unknown command")
         
-        ser.write(text)
+        with sending_lock:
+            ser.write(text)
+        
         logging.debug("Command sent {}".format(text))   
  
 
@@ -156,6 +165,7 @@ def read_sensor_data():
 
 @route('/button/<num>')
 def button(num):
+    MODE = "MANUAL"
     logging.info("Button {} pressed".format(num))
     command = GenericCommandWrapper(num)
     command_q.append(command)      
@@ -175,6 +185,108 @@ def savebutton():
 @view('templates/index.tmpl')
 def hello(name='World'):
     return dict(name=name)
+
+
+"""
+Commands:
+
+1 - 100%
+4 - 75%
+3 - 50%
+2 - 25%
+0 - OFF
+
+"""
+
+MODES = {
+    "OFF": [
+        (0, 0, "0")
+    ],
+    "MANUAL": [],
+    "HIGH": [
+        (510, 999, "0"),
+        (490, 520, "4"), 
+        (0,   500, "1")
+    ],
+    "LOW": [
+        (400, 999, "0"),
+        (350, 410, "4"), 
+        (0,   400, "1")
+    ],
+}
+
+
+
+@route('/set_mode/<mode>')
+def set_mode(mode):
+    global MODE
+    if mode in MODES.keys():
+        MODE = mode
+        logging.info("Switching to: {}".format(mode))
+        check_and_send_command_inner()
+    else:
+        logging.info("Invalid mode: {}".format(mode))
+
+
+command_processing_lock = threading.Lock()
+
+
+def check_and_send_command_inner():  
+    global MODE, CUR_SETTING
+    
+    with command_processing_lock:
+        if MODE == "MANUAL":
+            # nothing to do..
+            CUR_SETTING = (0, 0, "0")            
+            return 
+
+        if MODE == "OFF":
+            command = GenericCommandWrapper("0")
+            command_q.append(command)
+            CUR_SETTING = (0, 0, "0")            
+            
+        try:
+            resistor_reading = int(sensor_data[-1]["resistor_val"])
+            ranges = MODES[MODE]
+            
+            # safety
+            if resistor_reading < 0 or resistor_reading > 600:
+                MODE = "OFF"
+                command = GenericCommandWrapper("0")
+                command_q.append(command)                
+                logging.info("Temperature too high, switching off! {}".format(resistor_reading))
+                return
+
+            if resistor_reading < CUR_SETTING[0] or resistor_reading > CUR_SETTING[1]:
+                # make a new decision what to do
+                for val in ranges:
+                    low, high, mode = val
+                    logging.info(val)
+                    logging.info(resistor_reading)
+                    if resistor_reading >= low and resistor_reading <= high:
+                        CUR_SETTING = val
+                        logging.info("Changing setting to: {}".format(val))
+                        break
+
+            # send the command
+            command = GenericCommandWrapper(CUR_SETTING[2])
+            command_q.append(command)
+
+
+        except Exception, e:
+            logging.info("Could not decide what to do, switching off...{}".format(e))
+            command = GenericCommandWrapper("0")
+            command_q.append(command)
+
+def check_and_send_command():
+    
+    while True:
+        try:  
+            check_and_send_command_inner()
+        except Exception, e:
+            logging.warn("Could not run command checker! {}".format(e))
+    
+        time.sleep(60)  
 
 
 from serialreader import SerialCommunicator
@@ -219,6 +331,11 @@ if __name__ == "__main__":
     sender = threading.Thread(target=command_sender)
     sender.daemon = True
     sender.start()
+    
+    
+    checker = threading.Thread(target=check_and_send_command)
+    checker.daemon = True
+    checker.start()
     
     
     run(server="cherrypy", host='0.0.0.0', port=CONFIG["webserver_port"])

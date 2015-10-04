@@ -34,6 +34,18 @@
                 <h2 style="width:100%; text-align:right">Crockpot controller</h2>
             </div>
         </div>
+        
+        <div class="row">
+            <div class="col-sm-12">                    
+                    <a class="btn btn-default butInit" href="/set_mode/MANUAL">MANUAL</a>                
+                    <a class="btn btn-default butInit" href="/set_mode/OFF">OFF</a>      
+                    <a class="btn btn-default butInit" href="/set_mode/LOW">LOW</a>                          
+                    <a class="btn btn-default butInit" href="/set_mode/HIGH">HIGH</a>
+                    &nbsp;&nbsp;&nbsp;
+                    Current mode: <span id="cur_mode"></span>
+            </div>
+        </div>
+        
             <div class="col-sm-9">
                 <div id="graph_placeholder0" style="width:100%;height:300px"></div>
                 <div id="graph_placeholder1" style="width:100%;height:300px"></div>
@@ -78,6 +90,7 @@
             
             if (current_data[0]) {
                 start_time = current_data[0].time
+                $("#cur_mode").html(current_data[0].MODE)
             }            
             $(current_data).each(function(i, el) {
                 var time_delta = (start_time-el.time)
