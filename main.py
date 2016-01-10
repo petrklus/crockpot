@@ -204,14 +204,13 @@ MODES = {
     ],
     "MANUAL": [],
     "HIGH": [
-        (460, 999, "0"),
-        (440, 480, "4"), 
-        (0,   500, "1")
+        (470, 999, "0"),
+        (450, 480, "1"),
+        (0,   460, "1")
     ],
     "LOW": [
-        (400, 999, "0"),
-        (350, 410, "4"), 
-        (0,   400, "1")
+        (430, 999, "0"),
+        (0,   440, "1")
     ],
 }
 
@@ -239,7 +238,9 @@ def check_and_send_command_inner():
             # nothing to do..
             CUR_SETTING = (0, 0, "0")            
             return 
-
+        
+        logging.info("Current mode: {}".format(MODE))
+        
         if MODE == "OFF":
             command = GenericCommandWrapper("0")
             command_q.append(command)
@@ -247,6 +248,11 @@ def check_and_send_command_inner():
             
         try:
             resistor_reading = int(sensor_data[-1]["resistor_val"])
+            logging.info("Resistor reading: {}".format(resistor_reading))
+            logging.info("Current setting: {}".format(CUR_SETTING))
+            
+            # logging.info(sensor_data)
+            
             ranges = MODES[MODE]
             
             # safety
@@ -267,7 +273,7 @@ def check_and_send_command_inner():
                         CUR_SETTING = val
                         logging.info("Changing setting to: {}".format(val))
                         break
-
+            
             # send the command
             command = GenericCommandWrapper(CUR_SETTING[2])
             command_q.append(command)
